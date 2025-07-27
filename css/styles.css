@@ -1,0 +1,23 @@
+body {
+    font-family: 'Roboto', "Segoe UI",arial;
+    font-size: 14px;
+}
+
+.content {
+    padding: 20px;
+}
+
+#lf {
+    border: 1px solid black;
+    background-color: lightblue;
+}
+
+#buttonsbox {
+    margin-right: 20px;
+}
+
+.button-group button {
+    margin: 5px 0 5px 0;
+    display: block;
+    width: 100%;
+}

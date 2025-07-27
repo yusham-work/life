@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <link href="https://fonts.googleapis.com/css?family=Roboto&display=swap" rel="stylesheet">
+    <title>Game of Life</title>
+    <link rel="stylesheet" href="css/pure/pure-min.css">
+    <link rel="stylesheet" href="css/pure/grids-responsive-min.css">
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+
+<body>
+    <div class="content">
+        <div class="pure-g">
+            <div class="pure-u-1-5">
+                <h1>Game of Life</h1>
+                <p>This is a simple implementation of Conway's Game of Life.</p>
+                <p>Just for fun!</p>
+                <br/>
+                <p>Click on the grid to toggle cells.</p>
+                <br/>
+                <div id="buttonsbox">
+                    <label for="density">Density=</label>
+                    <select name="density" id="density">
+                        <option value="2">2</option>
+                        <option value="3">3</option>
+                        <option value="4">4</option>
+                        <option value="5">5</option>
+                        <option value="6">6</option>
+                        <option value="7">7</option>
+                        <option value="8">8</option>
+                        <option value="9">9</option>
+                    </select>
+                    <div class="button-group">
+                        <button class="pure-button pure-button-primary" onclick="initRandom();">Init Random</button>
+                        <button class="pure-button pure-button-primary" onclick="initGrid();">Init Grid</button>
+                        <button class="pure-button pure-button-primary" onclick="clearField();">Clear</button>
+                        <button class="pure-button pure-button-primary" onclick="doStep();">1 Step</button>
+                        <button class="pure-button pure-button-primary" onclick="doStepMulti(10);">10 Steps</button>
+                        <button class="pure-button pure-button-primary" onclick="doStepMulti(100);">100 Steps</button>
+                        <button class="pure-button pure-button-primary" onclick="doStepMulti(200);">200 Steps</button>
+                        <button class="pure-button pure-button-primary" onclick="doStop();">Stop</button>
+                    </div>
+                    <label for="density">Cell Size=</label>
+                    <select name="cellsize" id="cellsize"></select>
+                </div>
+            </div>
+            <div id="canvasbox">
+                <canvas id="lf"></canvas>
+            </div>        
+        </div>
+    </div>
+    <script>
+        var cnv = document.getElementById("lf");
+        var ctx = cnv.getContext('2d');
+        var ch = window.innerHeight - 50;
+        var cw = window.innerWidth - 250;
+        if (cw > ch) cw = ch;
+        else ch = cw;
+        var h, w, z = 10;
+        var k = 1 / 2;
+
+        var timer = 0;
+        var isAnimate = false;
+
+        var a = [];
+    
+        cnv.addEventListener('click', function (event) {
+            if (isAnimate) return false;
+            var x = Math.floor(event.offsetX / z);
+            var y = Math.floor(event.offsetY / z);
+            if (a[x][y]) {
+                a[x][y] = 0;
+                ctx.beginPath();
+                ctx.clearRect(x * z, y * z, z, z);
+                ctx.strokeRect(x * z, y * z, z, z);
+                ctx.closePath();
+                ctx.stroke();
+            }
+            else {
+                a[x][y] = 1;
+                ctx.beginPath();
+                ctx.fillRect(x * z, y * z, z, z);
+                ctx.closePath();
+                ctx.fill();
+            }
+        })
+
+        var dns = document.getElementById("density");
+        dns.addEventListener('change', function () {
+            var val = Number(this.value);
+            if (val > 1) k = 1 / val;
+        });
+
+        var cellSizeElem = document.getElementById("cellsize");
+        for (let i = 4; i <= 30; i+=2) {
+            let opt = document.createElement('option');
+            opt.value = i;
+            opt.label = i;
+            if (i==z) opt.selected = true;
+            cellSizeElem.appendChild(opt);
+        }
+
+        cellSizeElem.addEventListener('change', function(){
+            var val = Number(this.value);
+            setSize(val);
+            initArray();
+            drawField();
+        });
+
+        setSize(z);
+        initArray();
+        drawField();
+
+        function setSize(size){
+            z = size;
+            h = Math.round(ch / z);
+            w = Math.round(cw / z);
+            cnv.height = h * z;
+            cnv.width = w * z;
+            cw = cnv.width;
+            ch = cnv.height;
+        }
+
+        function initArray() {
+            a = [];
+            for (let i = 0; i < w; i++) {
+                a[i] = [];
+                for (let j = 0; j < h; j++)
+                    a[i][j] = 0;
+            }
+        }
+
+        function initRandom() {
+            initArray();
+            for (let i = 0; i < w; i++) {
+                for (let j = 0; j < h; j++)
+                    a[i][j] = Math.random() / k > 1 ? 0 : 1;
+            }
+            drawField();
+        }
+
+        function initGrid() {
+            initArray();
+            for (let i = 0; i < w - 1; i++) {
+                for (let j = 0; j < h - 1; j++) {
+                    if (i % 3 == 0 && j % 3 == 0) a[i][j] = 1;
+                    if (i % 3 == 1 && j % 3 == 1) a[i][j] = 1;
+                    if (i % 3 == 0 && j % 3 == 1) a[i][j] = 1;
+                    if (i % 3 == 1 && j % 3 == 0) a[i][j] = 1;
+                }
+            }
+            drawField();
+        }
+
+        function clearField() {
+            initArray();
+            drawField();
+        }
+
+        function doStop() {
+            clearTimeout(timer);
+            isAnimate = false;
+        }
+
+        function drawGrid() {
+            ctx.beginPath();
+            ctx.clearRect(0, 0, cnv.width, cnv.height);
+            for (let i = 0; i <= w; i++) {
+                ctx.moveTo(i * z, 0);
+                ctx.lineTo(i * z, cnv.height);
+            }
+            for (let i = 0; i <= h; i++) {
+                ctx.moveTo(0, i * z);
+                ctx.lineTo(cnv.width, i * z);
+            }
+            ctx.closePath();
+            ctx.stroke();
+        }
+
+        function drawField() {
+            ctx.clearRect(0, 0, cnv.width, cnv.height);
+            ctx.fillStyle = "#00008b";
+            ctx.strokeStyle = "#00008b";
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            drawGrid();
+            for (let i = 0; i < w; i++)
+                for (let j = 0; j < h; j++) {
+                    if (a[i][j]) {
+                        ctx.fillRect(i * z, j * z, z, z);
+                    }
+                }
+            ctx.closePath();
+            ctx.fill();
+        }
+
+        function doStepMulti(n, s) {
+            doStep();
+            var timeout = n < 50 ? 75 : n > 100 ? 20 : 40;
+            isAnimate = true;
+            if (s == undefined) s = n;
+            if (s) {
+                timer = setTimeout(function () { doStepMulti(n, s - 1) }, timeout);
+            } else {
+                isAnimate = false;
+            }
+        }
+
+
+        function doStep() {
+            let pp = 0, i1, i2, j1, j2;
+            b = [];
+            for (let i = 0; i < w; i++) {
+                b[i] = [];
+                for (let j = 0; j < h; j++) {
+                    b[i][j] = 0;
+                    pp = 0;
+                    i1 = i - 1;
+                    i2 = i + 1;
+                    j1 = j - 1;
+                    j2 = j + 1;
+                    if (i1 < 0) i1 = w - 1;
+                    if (i2 >= w) i2 = 0;
+                    if (j1 < 0) j1 = h - 1;
+                    if (j2 >= h) j2 = 0;
+                    pp = a[i1][j1] + a[i1][j] + a[i1][j2] + a[i][j1] + a[i][j2] + a[i2][j1] + a[i2][j] + a[i2][j2];
+                    if (a[i][j]) {
+                        if (pp == 2 || pp == 3) b[i][j] = 1;
+                    } else {
+                        if (pp == 3) b[i][j] = 1;
+                    }
+                }
+            }
+            a = [];
+            a = a.concat(b);
+            drawField();
+        }
+    </script>
+</body>
+
+</html>
